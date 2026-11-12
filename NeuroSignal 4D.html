@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NeuroSignal 4D</title>
+<style>
+:root{color-scheme:dark;--bg:#05080f;--pn:rgba(10,16,27,.84);--ln:#24324a;--tx:#e6ecf5;--mut:#8fa0ba;--acc:#5ee6c4;--hot:#ffb454}
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 "Segoe UI",system-ui,sans-serif;overflow:hidden}
+#stage{position:fixed;inset:0;right:min(480px,40vw)}#stage canvas{display:block;touch-action:none}
+.pn{position:fixed;background:linear-gradient(145deg,rgba(13,22,37,.9),rgba(7,12,22,.82));border:1px solid rgba(98,130,169,.25);border-radius:14px;padding:14px;backdrop-filter:blur(16px);box-shadow:0 12px 40px rgba(0,0,0,.24);z-index:2}
+#left{top:calc(14px + env(safe-area-inset-top,0px));left:14px;width:270px;max-width:58vw}
+#info{top:calc(14px + env(safe-area-inset-top,0px));right:14px;width:300px;min-height:120px}
+#info{right:calc(min(480px,40vw) + 24px);width:250px}
+#eeg{position:fixed;z-index:3;right:12px;top:12px;bottom:12px;width:min(460px,38vw);min-width:320px;display:flex;flex-direction:column;padding:12px;resize:horizontal;overflow:auto;direction:rtl}#eeg>*{direction:ltr}#eeg.collapsed{width:44px;min-width:44px;height:48px;bottom:auto;resize:none;overflow:hidden}#eeg.collapsed .eegbody{display:none}#eeg.full{inset:8px;width:auto;height:auto;resize:none;background:rgba(5,10,18,.98)}
+.eeghead{display:flex;align-items:center;justify-content:space-between;gap:6px}.eegtitle{font-weight:700;letter-spacing:.07em;color:#dce9fa}.eegbadge{font-size:10px;color:#ffca75;border:1px solid #66502c;border-radius:20px;padding:2px 7px}.eegbody{display:flex;min-height:0;flex:1;flex-direction:column;gap:7px;margin-top:7px}.eegtoolbar,.eegstats,.bands,.pipeline{display:flex;flex-wrap:wrap;gap:5px;align-items:center}.eegtoolbar button{padding:4px 8px;font-size:12px}.eegtoolbar label,.eegctl label{font-size:11px;color:var(--mut)}.eegctl{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}.eegctl input{accent-color:var(--acc)}#eegCanvas,#fftCanvas{width:100%;display:block;background:#070d16;border:1px solid #1c2c40;border-radius:7px}#eegCanvas{flex:1;min-height:175px}#fftCanvas{height:78px}.eegstats{justify-content:space-between;color:#9fb2ca;font:10px ui-monospace,monospace}.eegstats b{color:#e7f2ff}.band{display:flex;align-items:center;gap:3px;border:1px solid #26384e;border-radius:6px;padding:2px 5px;color:#a9bad0;font-size:10px}.band input{margin:0;accent-color:var(--acc)}.band em{font-style:normal;color:#fff;font-family:monospace}.pipeline{justify-content:center;color:#9cb0ca;font-size:9px}.pipeline span{padding:4px 5px;background:#101d2c;border:1px solid #26384e;border-radius:5px}.pipeline i{color:var(--acc);font-style:normal}.eegnote{font-size:9px;color:#8192a8}
+#bot{left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));width:min(680px,calc(100vw - 32px));text-align:center}
+h1{font-size:1.12rem;margin:0 0 2px;letter-spacing:.02em}h2{font-size:.72rem;margin:12px 0 5px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.11em}
+.sub{margin:0 0 6px;color:var(--mut);font-size:.8rem}
+.g{display:flex;flex-wrap:wrap;gap:5px}
+button{font:inherit;font-size:.82rem;background:rgba(28,43,66,.85);color:var(--tx);border:1px solid rgba(113,143,180,.25);border-radius:8px;padding:6px 10px;cursor:pointer;transition:background .18s,border-color .18s,transform .18s}
+button:hover{border-color:var(--acc);background:#243955;transform:translateY(-1px)}button:focus-visible{outline:2px solid var(--acc)}
+button.go{background:var(--acc);color:#04201a;border-color:var(--acc);font-weight:600}
+label{display:flex;gap:4px;align-items:center;color:var(--mut);font-size:.8rem;margin-right:6px}
+input[type=range]{width:100%}
+#info h3{margin:0 0 3px;font-size:1rem}#info p{margin:3px 0;color:#c8d3e6;font-size:.85rem}
+.chip{display:inline-block;padding:0 7px;border-radius:9px;font-size:.74rem;margin:2px 3px 0 0;border:1px solid var(--ln);color:var(--mut)}
+#cap{color:var(--hot);min-height:2.6em;font-size:.95rem}
+#dots{display:flex;gap:4px;justify-content:center;margin-top:4px}
+#dots i{flex:0 0 28px;height:5px;border-radius:3px;background:#24324a}#dots i.on{background:var(--acc)}#dots i.done{background:#2b6e61}
+#clk{color:var(--mut);font-size:.78rem}
+#viewMode{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:2;padding:7px 14px;border:1px solid rgba(94,230,196,.25);border-radius:20px;background:var(--pn);color:var(--acc);font-size:.8rem;pointer-events:none;backdrop-filter:blur(12px);white-space:nowrap}
+#hint{color:var(--mut);font-size:.74rem;margin-top:8px}#legend{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px;color:var(--mut);font-size:.72rem}
+#legend span:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--dot);margin-right:5px}
+.control-row{margin-top:5px}.g label{margin:2px 3px 2px 0}.sub{line-height:1.4}
+button:disabled,input:disabled{opacity:.45;cursor:not-allowed}
+@media(max-height:760px){#left{max-height:calc(100vh - 28px);overflow:auto}#info{max-height:calc(100vh - 28px);overflow:auto}}
+@media(max-width:900px){#stage{inset:0}#eeg{top:auto;left:8px;right:8px;bottom:8px;width:auto;min-width:0;height:44vh;resize:vertical}#eeg.collapsed{left:auto;width:44px;height:48px}#bot{display:none}#info{top:auto;bottom:calc(44vh + 14px);right:8px;width:230px;min-height:0}#left{max-height:38vh;overflow:auto}}
+@media(max-width:760px){.pn{padding:10px;border-radius:12px}#left{top:calc(8px + env(safe-area-inset-top,0px));left:8px;width:min(260px,calc(100vw - 16px));max-width:calc(100vw - 16px);max-height:34vh;overflow:auto}#info{top:auto;bottom:calc(46vh + 12px);left:auto;right:8px;width:min(220px,52vw);max-height:15vh;overflow:auto}#eeg{height:46vh}#bot{bottom:calc(8px + env(safe-area-inset-bottom,0px));width:calc(100vw - 16px)}#viewMode{left:auto;right:8px;top:auto;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:none;font-size:.7rem}}
+@media(max-width:430px){#left{width:calc(100vw - 16px);max-height:39vh}#left .sub{display:none}#left h2{margin-top:8px}#info{bottom:calc(108px + env(safe-area-inset-bottom,0px));max-height:17vh}#bot{font-size:.9rem}}
+</style></head><body>
+<div id="stage"></div>
+<div id="viewMode" aria-live="polite">Outer face · zoom in to explore</div>
+<div class="pn" id="left">
+<h1>NeuroSignal 4D</h1><p class="sub">3D anatomy + time. Drag to rotate, scroll to zoom, click a node.</p>
+<div id="legend"><span style="--dot:#5ee6c4">Interactive model</span><span style="--dot:#ffb454">Illustrative signals</span></div>
+<h2>Signal scenarios</h2>
+<div class="g"><button class="go" data-s="speak">Speak</button><button data-s="hear">Hear</button><button data-s="see">See</button><button data-s="touch">Touch</button><button data-s="talk">Conversation</button></div>
+<h2>Simulation controls</h2>
+<div class="g"><button id="bPlay">Pause</button><button id="bPrev" aria-label="Previous step">◀ Step</button><button id="bNext" aria-label="Next step">Step ▶</button><button id="bRestart">Restart</button><button id="bMic">Mic live</button></div>
+<label style="margin-top:4px">Scenario progress <span id="stepLabel">Ready</span></label><input type="range" id="timeline" min="0" max="1" step="1" value="0" aria-label="Scenario step" disabled>
+<label style="margin-top:4px">Speed <span id="sv">1.0x</span></label><input type="range" id="spd" min=".1" max="3" step=".1" value="1" aria-label="Simulation speed">
+<h2>Camera</h2>
+<div class="g"><button data-v="home">Home</button><button data-v="side">Side</button><button data-v="front">Front</button><button data-v="top">Top</button><button data-v="back">Back</button><button id="bRot">Auto-rotate</button></div>
+<h2>Anatomical exploration</h2><label>Level <b id="depthLabel">1 · External head</b></label><div class="g"><button id="depthPrev">−</button><input id="depth" type="range" min="1" max="7" step="1" value="1" aria-label="Anatomy depth"><button id="depthNext">+</button></div>
+<h2>Layers</h2>
+<div class="g"><label><input type="checkbox" data-l="portrait" checked>Skin / head</label><label><input type="checkbox" data-l="skull" checked>Skull guide · schematic</label><label><input type="checkbox" data-l="brain" checked>Brain guide · schematic</label><label><input type="checkbox" data-l="fib" checked>Neural pathways</label><label><input type="checkbox" data-l="neu" checked>Neuron network · schematic</label><label><input type="checkbox" data-l="lab" checked>Labels</label><label><input type="checkbox" data-l="nod" checked>Regions</label><label><input type="checkbox" data-l="wire">Wireframe</label></div>
+<div id="hint">Internal structures and network are schematic guides, not precision anatomical reconstructions.</div>
+</div>
+<div class="pn" id="info"></div>
+<section class="pn" id="eeg" aria-label="Continuous simulated EEG dashboard"><div class="eeghead"><div><div class="eegtitle">EEG · LIVE MONITOR</div><span class="eegbadge">SIMULATED · NOT PATIENT DATA</span></div><div><button id="eegFull" title="Fullscreen analysis">⛶</button><button id="eegCollapse" title="Collapse panel">−</button></div></div><div class="eegbody"><div class="eegtoolbar"><button class="go" id="eegRun">Pause</button><button id="eegReset">Reset</button><label>Speed <select id="eegSpeed"><option>.5</option><option selected>1</option><option>1.5</option><option>2</option><option>3</option></select>×</label><label>Channel <select id="eegSelect"><option value="all">All channels</option></select></label></div><canvas id="eegCanvas" aria-label="Scrolling EEG channels"></canvas><div class="eegstats"><span>CH <b id="eegCh">ALL</b></span><span>AMP <b id="eegAmp">—</b> µV</span><span>PEAK <b id="eegHz">—</b> Hz</span><span>WINDOW <b id="eegWindow">10.0</b> s</span></div><canvas id="fftCanvas" aria-label="FFT frequency spectrum"></canvas><div class="bands" id="bands"></div><div class="eegctl"><label>Sensitivity · <span id="sensVal">1.0</span>×<input id="sens" type="range" min=".4" max="2.5" step=".1" value="1"></label><label>Time scale · <span id="timeVal">10</span> s<input id="timeScale" type="range" min="4" max="20" step="1" value="10"></label></div><div class="pipeline"><span>EEG</span><i>→</i><span>Filtering</span><i>→</i><span>Features</span><i>→</i><span>Classifier</span><i>→</i><span>Intention</span><i>→</i><span>Neural signal</span></div><div class="eegnote">Synthetic rhythms + noise; region and scenario changes modulate relevant channels.</div></div></section>
+<div class="pn" id="bot"><div id="cap">Pick a scenario to watch a signal travel through the brain.</div><div id="dots"></div><div id="clk"></div><div id="activePath" class="eegnote">Pathway: awaiting scenario</div></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+const $=i=>document.getElementById(i),V3=(a,b,c)=>new THREE.Vector3(a,b,c),rnd=()=>Math.random();
+const ren=new THREE.WebGLRenderer({antialias:true});ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.setClearColor(0x05080f);$('stage').appendChild(ren.domElement);
+ren.localClippingEnabled=true;
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(42,1,.1,100);cam.position.set(.7,.3,5.8);
+const ctl=new THREE.OrbitControls(cam,ren.domElement);ctl.enableDamping=true;ctl.enableZoom=false;ctl.target.set(0,.15,0);ctl.autoRotateSpeed=1.2;ctl.minDistance=3.35;ctl.maxDistance=8.5;
+scene.add(new THREE.AmbientLight(0x8899bb,.8));const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(3,4,5);scene.add(dl);
+const G={face:new THREE.Group(),skull:new THREE.Group(),brain:new THREE.Group(),fib:new THREE.Group(),neu:new THREE.Group(),lab:new THREE.Group(),nod:new THREE.Group()};for(const k in G)scene.add(G[k]);
+let portraitReady=false;
+const humanModel=new THREE.Group();scene.add(humanModel);humanModel.visible=false;let humanReady=false,humanFailed=false,humanMaterials=[],humanLayerClip=null;
+const portraitMaterial=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,alphaTest:.02,side:THREE.DoubleSide,depthWrite:true});
+const portraitPhoto=new THREE.Mesh(new THREE.BufferGeometry(),portraitMaterial);portraitPhoto.renderOrder=1;portraitPhoto.visible=false;scene.add(portraitPhoto);
+let portraitShell;
+let portraitShellMaterial;
+new THREE.TextureLoader().load('./portrait.png',source=>{source.encoding=THREE.sRGBEncoding;const w=512,h=640,canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(source.image,200,45,365,455,0,0,w,h);const image=ctx.getImageData(0,0,w,h),pixels=image.data,visited=new Uint8Array(w*h),queue=new Int32Array(w*h);let first=0,last=0;
+const addEdge=(i)=>{if(!visited[i]){visited[i]=1;queue[last++]=i}};
+for(let x=0;x<w;x++){addEdge(x);addEdge((h-1)*w+x)}for(let y=1;y<h-1;y++){addEdge(y*w);addEdge(y*w+w-1)}
+while(first<last){const i=queue[first++],p=i*4,r=pixels[p],g=pixels[p+1],b=pixels[p+2];if(r>232&&g>232&&b>232&&Math.max(r,g,b)-Math.min(r,g,b)<20){pixels[p+3]=0;const x=i%w,y=(i/w)|0;if(x>0)addEdge(i-1);if(x<w-1)addEdge(i+1);if(y>0)addEdge(i-w);if(y<h-1)addEdge(i+w)}}
+ctx.putImageData(image,0,0);const faceTexture=new THREE.CanvasTexture(canvas);faceTexture.encoding=THREE.sRGBEncoding;faceTexture.anisotropy=ren.capabilities.getMaxAnisotropy();faceTexture.needsUpdate=true;portraitMaterial.map=faceTexture;portraitMaterial.needsUpdate=true;portraitReady=true;
+},undefined,()=>{$('cap').textContent='Your portrait could not be loaded. Keep portrait.png beside NeuroSignal 4D.html and reload.'});
+// Real 360-degree bust. Source: Innerscene / MakeHuman, CC0. Keep the textured head and facial details; omit clothing, ID and safety glasses.
+new THREE.GLTFLoader().load('./professional-lab-researcher.glb',gltf=>{
+ const root=gltf.scene,keep=new Set(['eyebrow001','eyelashes01','Hairline | fine scalp roots','low-poly','Sam | anatomical body','base','teeth_base']);let body=null;
+ root.traverse(o=>{if(!o.isMesh)return;o.visible=keep.has(o.name)||o.userData?.name==='Sam | anatomical body';if(o.name==='Sam | anatomical body'||o.name==='base'||o.userData?.name==='Sam | anatomical body')body=o;if(!o.visible)return;o.castShadow=true;o.receiveShadow=true;const mats=(Array.isArray(o.material)?o.material:[o.material]).map(m=>{const copy=m.clone();if(o===body){copy.clippingPlanes=[];copy.clipShadows=true}humanMaterials.push(copy);return copy});o.material=Array.isArray(o.material)?mats:mats[0]});
+ if(!body){humanFailed=true;$('cap').textContent='3D head model is missing its skin mesh.';return}
+ root.updateMatrixWorld(true);body.updateMatrixWorld(true);const pos=body.geometry.attributes.position,v=new THREE.Vector3(),lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];
+ for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i);body.localToWorld(v);if(v.y<1.28)continue;lo[0]=Math.min(lo[0],v.x);lo[1]=Math.min(lo[1],v.y);lo[2]=Math.min(lo[2],v.z);hi[0]=Math.max(hi[0],v.x);hi[1]=Math.max(hi[1],v.y);hi[2]=Math.max(hi[2],v.z)}
+ if(!Number.isFinite(lo[1])||!Number.isFinite(hi[1])||hi[1]-lo[1]<.1){humanFailed=true;return}
+ const modelScale=2.6/(hi[1]-lo[1]),cx=(lo[0]+hi[0])/2,cz=(lo[2]+hi[2])/2;humanModel.scale.setScalar(modelScale);humanModel.position.set(-cx*modelScale,1.55-hi[1]*modelScale,-cz*modelScale);const cutY=1.55+(1.22-hi[1])*modelScale;humanLayerClip=new THREE.Plane(new THREE.Vector3(0,1,0),-cutY);
+ const oldBodyMats=Array.isArray(body.material)?body.material:[body.material];humanMaterials=humanMaterials.filter(m=>!oldBodyMats.includes(m));body.material=oldBodyMats.map(m=>{const copy=m.clone();copy.clippingPlanes=[humanLayerClip];copy.clipShadows=true;copy.userData.baseTransparent=copy.transparent;copy.userData.baseDepthWrite=copy.depthWrite;copy.userData.baseOpacity=copy.opacity;humanMaterials.push(copy);return copy});humanMaterials.forEach(m=>{if(m.userData.baseOpacity===undefined){m.userData.baseTransparent=m.transparent;m.userData.baseDepthWrite=m.depthWrite;m.userData.baseOpacity=m.opacity}});
+ humanModel.add(root);humanReady=true;
+},undefined,()=>{humanFailed=true;$('cap').textContent='Could not load the local 3D head. Keep professional-lab-researcher.glb beside NeuroSignal 4D.html and use Live Server.'});
+const CEN=V3(0,.25,0);
+function tex(f){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'#fff');g.addColorStop(.3,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)}
+const glow=tex();
+// ---------- outer face, revealed before the skull and internal anatomy
+const skin=new THREE.MeshPhongMaterial({color:0xc58e78,specular:0x49332c,shininess:18,transparent:true,opacity:1,depthWrite:true,side:THREE.DoubleSide});
+const skinCanvas=document.createElement('canvas');skinCanvas.width=skinCanvas.height=256;const skinCtx=skinCanvas.getContext('2d'),skinPixels=skinCtx.createImageData(256,256);for(let i=0;i<skinPixels.data.length;i+=4){const grain=238+Math.random()*17;skinPixels.data[i]=grain;skinPixels.data[i+1]=grain;skinPixels.data[i+2]=grain;skinPixels.data[i+3]=255}skinCtx.putImageData(skinPixels,0,0);skin.map=new THREE.CanvasTexture(skinCanvas);skin.map.encoding=THREE.sRGBEncoding;skin.map.needsUpdate=true;
+const headGeo=new THREE.SphereGeometry(1,80,64),hp=headGeo.attributes.position;
+function gaussian(x,y,cx,cy,sx,sy){return Math.exp(-(((x-cx)/sx)**2+((y-cy)/sy)**2))}
+function sculptZ(x,y,z){const faceFront=Math.max(0,z),eyeSockets=gaussian(x,y,-.3,.22,.19,.105)+gaussian(x,y,.3,.22,.19,.105),browRidge=gaussian(x,y,-.3,.34,.2,.065)+gaussian(x,y,.3,.34,.2,.065),noseBridge=gaussian(x,y,0,.025,.085,.29),noseTip=gaussian(x,y,0,-.15,.12,.1),nostrils=gaussian(x,y,-.075,-.2,.035,.025)+gaussian(x,y,.075,-.2,.035,.025),cheeks=gaussian(x,y,-.4,-.04,.2,.16)+gaussian(x,y,.4,-.04,.2,.16),muzzle=gaussian(x,y,0,-.29,.23,.11),mouthLine=gaussian(x,y,0,-.36,.18,.022),philtrum=gaussian(x,y,0,-.245,.04,.055),upperLip=gaussian(x,y,0,-.32,.17,.04),lowerLip=gaussian(x,y,0,-.405,.16,.04),chin=gaussian(x,y,0,-.55,.26,.12);return z+faceFront*(-.18*eyeSockets+.035*browRidge+.23*noseBridge+.23*noseTip-.07*nostrils+.035*cheeks+.035*muzzle-.105*mouthLine-.025*philtrum+.075*upperLip+.075*lowerLip+.09*chin)}
+for(let i=0;i<hp.count;i++){
+ let x=hp.getX(i),y=hp.getY(i),z=hp.getZ(i);
+ const jawTaper=Math.max(0,(-y-.05)/.9);
+ x*=1-.19*jawTaper;
+ x*=1+.1*gaussian(0,y,0,-.48,.5,.3);
+ z=sculptZ(x,y,z);
+ hp.setXYZ(i,x,y,z);
+}
+headGeo.computeVertexNormals();
+const head=new THREE.Mesh(headGeo,skin);head.scale.set(1.08,1.3,1.4);head.position.set(0,.15,.08);G.face.add(head);
+const portraitGeometry=new THREE.BufferGeometry(),portraitPositions=[],portraitUvs=[],portraitIndices=[],portraitRows=96,portraitCols=80,portraitWidth=2.16,portraitHeight=2.72;
+for(let r=0;r<=portraitRows;r++)for(let c=0;c<=portraitCols;c++){const u=c/portraitCols,v=r/portraitRows,x=(u-.5)*portraitWidth,y=1.35-v*portraitHeight,nx=x/1.08,ny=(y-.15)/1.3,nz=Math.sqrt(Math.max(0,1-nx*nx-ny*ny));portraitPositions.push(x,y,.08+1.4*sculptZ(nx,ny,nz)+.025);portraitUvs.push(u,1-v);if(r<portraitRows&&c<portraitCols){const a=r*(portraitCols+1)+c,b=a+portraitCols+1;portraitIndices.push(a,b,a+1,b,b+1,a+1)}}
+portraitGeometry.setAttribute('position',new THREE.Float32BufferAttribute(portraitPositions,3));portraitGeometry.setAttribute('uv',new THREE.Float32BufferAttribute(portraitUvs,2));portraitGeometry.setIndex(portraitIndices);portraitGeometry.computeVertexNormals();portraitPhoto.geometry=portraitGeometry;
+const shellCanvas=document.createElement('canvas');shellCanvas.width=8;shellCanvas.height=256;const shellCtx=shellCanvas.getContext('2d'),shellGradient=shellCtx.createLinearGradient(0,0,0,256);shellGradient.addColorStop(0,'#171719');shellGradient.addColorStop(.24,'#211d1c');shellGradient.addColorStop(.3,'#76503e');shellGradient.addColorStop(.4,'#b97d61');shellGradient.addColorStop(.72,'#b77860');shellGradient.addColorStop(1,'#d0bcb1');shellCtx.fillStyle=shellGradient;shellCtx.fillRect(0,0,8,256);const shellTexture=new THREE.CanvasTexture(shellCanvas);shellTexture.encoding=THREE.sRGBEncoding;
+portraitShellMaterial=new THREE.MeshPhongMaterial({map:shellTexture,specular:0x25201e,shininess:14,side:THREE.DoubleSide,transparent:true,opacity:1,depthWrite:true});portraitShell=new THREE.Mesh(headGeo.clone(),portraitShellMaterial);portraitShell.scale.copy(head.scale);portraitShell.position.copy(head.position);portraitShell.visible=false;portraitShell.renderOrder=0;scene.add(portraitShell);
+const rows=64,cols=80,grid=[];
+for(let r=1;r<rows;r++)for(let c=0;c<cols;c++){const a=r*(cols+1)+c,b=a+1;for(const i of [a,b])grid.push(hp.getX(i)*1.002,hp.getY(i)*1.002,hp.getZ(i)*1.002)}
+for(let c=0;c<=cols;c++)for(let r=0;r<rows;r++){const a=r*(cols+1)+c,b=a+cols+1;for(const i of [a,b])grid.push(hp.getX(i)*1.002,hp.getY(i)*1.002,hp.getZ(i)*1.002)}
+const gridGeo=new THREE.BufferGeometry();gridGeo.setAttribute('position',new THREE.Float32BufferAttribute(grid,3));
+const wireMat=new THREE.LineBasicMaterial({color:0x454545,transparent:true,opacity:.42,depthWrite:false});
+const faceWires=[],faceWire=new THREE.LineSegments(gridGeo,wireMat);faceWire.scale.copy(head.scale);faceWire.position.copy(head.position);faceWire.renderOrder=3;G.face.add(faceWire);faceWires.push(faceWire);
+const earWireMat=new THREE.LineBasicMaterial({color:0x525252,transparent:true,opacity:.52,depthWrite:false});
+const featureMat=new THREE.MeshPhongMaterial({color:0x75483e,specular:0x36251f,shininess:16}),nostrilMat=new THREE.MeshBasicMaterial({color:0x38231f});
+const faceCurve=(points,radius,material)=>{const curve=new THREE.CatmullRomCurve3(points.map(p=>V3(...p)));const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,24,radius,8,false),material);G.face.add(mesh);return mesh};
+const surfaceZ=(x,y)=>{const nx=x/1.08,ny=(y-.15)/1.3,nz=Math.sqrt(Math.max(0,1-nx*nx-ny*ny));return .08+1.4*sculptZ(nx,ny,nz)};
+// A dark scalp cap and inset, fully 3D eyes keep the profile readable when the portrait texture is out of view.
+const hairMat=new THREE.MeshPhongMaterial({color:0x211a18,specular:0x342923,shininess:24}),hair=new THREE.Mesh(new THREE.SphereGeometry(1,48,32,0,Math.PI*2,0,1.12),hairMat);hair.scale.set(1.095,1.315,1.42);hair.position.set(0,.15,.08);G.face.add(hair);
+const scleraMat=new THREE.MeshPhongMaterial({color:0xe6d8cc,specular:0x66534a,shininess:48}),irisMat=new THREE.MeshPhongMaterial({color:0x50392e,specular:0x88776c,shininess:72}),pupilMat=new THREE.MeshBasicMaterial({color:0x171311}),catchlightMat=new THREE.MeshBasicMaterial({color:0xffffff});
+for(const side of [-1,1]){const ex=side*.3,ey=.43,ez=surfaceZ(ex,ey);const eye=new THREE.Mesh(new THREE.SphereGeometry(1,28,20),scleraMat);eye.scale.set(.095,.055,.045);eye.position.set(ex,ey,ez+.012);G.face.add(eye);const iris=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),irisMat);iris.scale.set(.028,.034,.012);iris.position.set(ex-side*.004,ey,ez+.052);G.face.add(iris);const pupil=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),pupilMat);pupil.scale.set(.014,.021,.008);pupil.position.set(ex-side*.004,ey,ez+.062);G.face.add(pupil);const shine=new THREE.Mesh(new THREE.SphereGeometry(1,12,10),catchlightMat);shine.scale.set(.006,.008,.004);shine.position.set(ex-.008,ey+.012,ez+.07);G.face.add(shine)}
+const surfaceCurve=(points,radius,material,lift=.012)=>faceCurve(points.map(([x,y])=>[x,y,surfaceZ(x,y)+lift]),radius,material);
+for(const side of [-1,1]){
+ surfaceCurve([[side*.46,.445],[side*.39,.49],[side*.3,.505],[side*.22,.49],[side*.15,.445]],.012,featureMat,.018);
+ surfaceCurve([[side*.45,.425],[side*.38,.39],[side*.3,.38],[side*.22,.39],[side*.16,.425]],.01,skin,.014);
+ surfaceCurve([[side*.14,.56],[side*.24,.59],[side*.35,.59],[side*.46,.56]],.018,featureMat,.025);
+ surfaceCurve([[side*.12,.02],[side*.17,-.07],[side*.2,-.18],[side*.17,-.25]],.008,featureMat,.008);
+}
+const noseTipGeo=new THREE.SphereGeometry(1,24,16),noseTip=new THREE.Mesh(noseTipGeo,skin);noseTip.scale.set(.1,.065,.055);noseTip.position.set(0,-.035,surfaceZ(0,-.035)+.012);G.face.add(noseTip);
+const noseTipWire=new THREE.LineSegments(new THREE.WireframeGeometry(noseTipGeo),earWireMat);noseTipWire.scale.copy(noseTip.scale).multiplyScalar(1.005);noseTipWire.position.copy(noseTip.position);noseTipWire.renderOrder=3;G.face.add(noseTipWire);faceWires.push(noseTipWire);
+for(const side of [-1,1]){
+ const alaGeo=new THREE.SphereGeometry(1,20,14),ala=new THREE.Mesh(alaGeo,skin);ala.scale.set(.055,.04,.035);ala.position.set(side*.095,-.055,surfaceZ(side*.095,-.055)+.012);G.face.add(ala);
+ const alaWire=new THREE.LineSegments(new THREE.WireframeGeometry(alaGeo),earWireMat);alaWire.scale.copy(ala.scale).multiplyScalar(1.005);alaWire.position.copy(ala.position);alaWire.renderOrder=3;G.face.add(alaWire);faceWires.push(alaWire);
+ const nostril=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),nostrilMat);nostril.scale.set(.022,.009,.006);nostril.position.set(side*.065,-.075,surfaceZ(side*.065,-.075)+.018);G.face.add(nostril);
+}
+surfaceCurve([[-.17,-.28],[-.1,-.3],[-.045,-.29],[0,-.3],[.045,-.29],[.1,-.3],[.17,-.28]],.014,featureMat,.02);
+surfaceCurve([[-.15,-.31],[-.08,-.34],[0,-.35],[.08,-.34],[.15,-.31]],.014,featureMat,.022);
+for(const side of [-1,1]){
+ const earGeo=new THREE.SphereGeometry(1,24,20),ear=new THREE.Mesh(earGeo,skin);ear.scale.set(.16,.29,.12);ear.position.set(side*1.01,.02,.02);G.face.add(ear);
+ const earWire=new THREE.LineSegments(new THREE.WireframeGeometry(earGeo),earWireMat);earWire.scale.copy(ear.scale);earWire.position.copy(ear.position);earWire.renderOrder=3;G.face.add(earWire);faceWires.push(earWire);
+}
+const neckGeo=new THREE.CylinderGeometry(.3,.4,.92,32,20),neck=new THREE.Mesh(neckGeo,skin);neck.position.set(0,-1.45,-.03);G.face.add(neck);
+const neckWire=new THREE.LineSegments(new THREE.WireframeGeometry(neckGeo),wireMat);neckWire.position.copy(neck.position);neckWire.renderOrder=3;G.face.add(neckWire);faceWires.push(neckWire);
+// ---------- skull, jaw, spine
+const sm=new THREE.MeshPhongMaterial({color:0xcfd8e8,transparent:true,opacity:.12,depthWrite:false,side:THREE.DoubleSide}),lm=new THREE.LineBasicMaterial({color:0xaab8d0,transparent:true,opacity:.14}),bone=new THREE.MeshPhongMaterial({color:0xe9eef7,transparent:true,opacity:.55});
+const cr=new THREE.Mesh(new THREE.SphereGeometry(1,40,28),sm);cr.scale.set(1.35,1.2,1.6);cr.position.y=.2;
+const wf=new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.SphereGeometry(1,22,14)),lm);wf.scale.copy(cr.scale);wf.position.copy(cr.position);
+const mx=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),sm);mx.scale.set(.85,.7,.8);mx.position.set(0,-.85,.85);
+G.skull.add(cr,wf,mx);
+[1,-1].forEach(s=>{const o=new THREE.Mesh(new THREE.TorusGeometry(.26,.035,8,24),bone);o.position.set(.5*s,-.2,1.5);G.skull.add(o)});
+const nose=new THREE.Mesh(new THREE.ConeGeometry(.12,.35,4),bone);nose.rotation.x=Math.PI/2;nose.position.set(0,-.55,1.55);G.skull.add(nose);
+const jaw=new THREE.Group();jaw.position.set(0,-.9,-.05);const man=new THREE.Mesh(new THREE.TorusGeometry(.8,.05,8,28,Math.PI),bone);man.rotation.x=Math.PI/2;man.position.set(0,-.25,.45);man.scale.set(1,1,1.1);jaw.add(man);
+for(let i=0;i<9;i++){const t=new THREE.Mesh(new THREE.BoxGeometry(.07,.09,.05),bone);const a=(i/8)*Math.PI;t.position.set(Math.cos(a)*.74,-.18,.45+Math.sin(a)*.8);jaw.add(t)}
+G.skull.add(jaw);
+const spPts=[];for(let i=0;i<=14;i++)spPts.push(V3(0,-1.1-i*.16,-.55-Math.sin(i*.35)*.12));
+spPts.slice(0,14).forEach((p,i)=>{const v=new THREE.Mesh(new THREE.CylinderGeometry(.2,.22,.11,14),bone);v.position.copy(p);G.skull.add(v)});
+const cord=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(spPts),40,.05,8),new THREE.MeshBasicMaterial({color:0xf4a261,transparent:true,opacity:.8}));G.skull.add(cord);
+// ---------- brain
+const bgeo=new THREE.IcosahedronGeometry(1,5),bp=bgeo.attributes.position,v=new THREE.Vector3();
+for(let i=0;i<bp.count;i++){v.fromBufferAttribute(bp,i);const d=.045*Math.sin(v.x*9)*Math.sin(v.y*8+1)*Math.sin(v.z*9)+.02*Math.sin(v.z*20+v.x*6);v.multiplyScalar(1+d-(Math.abs(v.x)<.08&&v.y>0?.04:0));bp.setXYZ(i,v.x,v.y,v.z)}
+bgeo.computeVertexNormals();
+const bm=new THREE.Group(),brainSkin=new THREE.MeshPhongMaterial({color:0xd98fa8,transparent:true,opacity:.3,depthWrite:false});
+const bw=new THREE.Group(),brainLines=new THREE.MeshBasicMaterial({color:0xff9fbd,wireframe:true,transparent:true,opacity:.1});
+for(const side of [-1,1]){const lobe=new THREE.Mesh(bgeo,brainSkin);lobe.scale.set(.57,.82,1.3);lobe.position.set(side*.46,.25,0);bm.add(lobe);const lines=new THREE.Mesh(bgeo,brainLines);lines.scale.copy(lobe.scale);lines.position.copy(lobe.position);bw.add(lines)}
+const cb=new THREE.Mesh(new THREE.SphereGeometry(.55,24,16),new THREE.MeshPhongMaterial({color:0xb08968,transparent:true,opacity:.4,depthWrite:false}));cb.scale.set(1,.65,.7);cb.position.set(0,-.5,-.95);
+const cbw=new THREE.Mesh(cb.geometry,new THREE.MeshBasicMaterial({color:0xd9b38c,wireframe:true,transparent:true,opacity:.15}));cbw.scale.copy(cb.scale);cbw.position.copy(cb.position);
+const bs=new THREE.Mesh(new THREE.CylinderGeometry(.14,.1,.9,12),new THREE.MeshPhongMaterial({color:0xf4a261,transparent:true,opacity:.5}));bs.position.set(0,-.7,-.5);bs.rotation.x=.3;
+G.brain.add(bm,bw,cb,cbw,bs);
+// ---------- dendritic neurons
+const seg=[],som=[];
+function br(p,d,l,n){if(n<0)return;const q=p.clone().addScaledVector(d,l);seg.push(p.x,p.y,p.z,q.x,q.y,q.z);const k=n>1?2:1+((rnd()*2)|0);for(let i=0;i<k;i++)br(q,d.clone().add(V3(rnd()-.5,rnd()-.5,rnd()-.5).multiplyScalar(1.1)).normalize(),l*.75,n-1)}
+for(let i=0;i<110;i++){let p;do{p=V3((rnd()*2-1),(rnd()*2-1)*.8,(rnd()*2-1)*1.3)}while(p.x*p.x+(p.y/.8)**2+(p.z/1.3)**2>.8);p.y+=.25;som.push(p.x,p.y,p.z);for(let j=0;j<5;j++)br(p,V3(rnd()-.5,rnd()-.5,rnd()-.5).normalize(),.1,3)}
+const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.Float32BufferAttribute(seg,3));G.neu.add(new THREE.LineSegments(sg,new THREE.LineBasicMaterial({color:0x7fb6ff,transparent:true,opacity:.32})));
+const og=new THREE.BufferGeometry();og.setAttribute('position',new THREE.Float32BufferAttribute(som,3));G.neu.add(new THREE.Points(og,new THREE.PointsMaterial({color:0xffd36e,size:.07,map:glow,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
+// ---------- regions: [name,x,y,z,color,side(0 mid,1 both,2 left only),desc,links]
+const D={
+F:['Prefrontal Cortex',.4,.35,.95,0xff7a90,1,'Planning, decisions and what you intend to say. The “idea” of a sentence starts here.','Broca, Wernicke, Thalamus, Amygdala, Parietal'],
+M:['Motor Cortex',.55,.75,.35,0xffa24c,1,'Sends voluntary movement commands to mouth, tongue and limbs via the corticospinal tract.','Prefrontal, Sensory, Broca, Brainstem'],
+S:['Somatosensory Cortex',.55,.75,-.15,0xffd84c,1,'Maps touch, pain, temperature and body position.','Motor, Parietal, Thalamus'],
+P:['Parietal Lobe',.5,.55,-.7,0x9be564,1,'Integrates senses to build space and attention (“where” pathway).','Sensory, Occipital, Prefrontal'],
+O:['Occipital Lobe (visual)',.3,.15,-1.1,0x4cc9f0,1,'Processes images from the eyes after the thalamus relays them (optic radiation).','Thalamus, Parietal'],
+A:['Auditory Cortex',.8,-.1,.1,0x6c8cff,1,'Temporal lobe area that receives sound signals.','Thalamus, Wernicke, Hippocampus'],
+W:['Wernicke’s Area',.7,.15,-.35,0xc77dff,2,'Understands the meaning of heard and read language (left hemisphere).','Auditory, Broca, Parietal, Prefrontal'],
+B:['Broca’s Area',.6,.15,.65,0xff5db1,2,'Plans speech: word order and the motor sequence of sounds. Linked to Wernicke by the arcuate fasciculus.','Wernicke, Prefrontal, Motor'],
+T:['Thalamus',0,.1,.05,0xf2f2f2,0,'The relay station: nearly every sensory signal passes through here on its way to cortex.','Sensory, Auditory, Occipital, Prefrontal, Brainstem, Eyes'],
+H:['Hippocampus',.45,-.15,-.3,0x5ee6c4,1,'Forms new memories.','Amygdala, Thalamus, Auditory'],
+G:['Amygdala',.4,-.2,.3,0xff6b6b,1,'Fear and emotional salience.','Hippocampus, Prefrontal'],
+C:['Cerebellum',0,-.5,-1,0xb08968,0,'Coordinates timing and balance, keeps speech and movement smooth.','Brainstem, Thalamus'],
+ST:['Brainstem',0,-.8,-.5,0xf4a261,0,'Breathing, heartbeat, and the origin of most cranial nerves. Continues as the spinal cord.','Motor, Thalamus, Cerebellum, Ear, Face, Tongue, Larynx, Spinal cord'],
+EAR:['Ear: Cochlear nerve (CN VIII)',1.15,-.3,-.1,0x6c8cff,1,'Sound vibrations become electrical spikes in the cochlea.','Brainstem'],
+EYE:['Eye: Optic nerve (CN II)',.5,-.2,1.35,0x4cc9f0,1,'The retina turns light into spikes sent to the thalamus.','Thalamus'],
+FACE:['Face muscles: Facial nerve (CN VII)',.7,-1,1.1,0xff9ecd,1,'Moves lips and cheeks.','Brainstem'],
+TONG:['Tongue: Hypoglossal nerve (CN XII)',0,-1.15,.8,0xff8fa3,0,'Shapes speech sounds with the tongue.','Brainstem'],
+LAR:['Larynx: Vagus nerve (CN X)',0,-1.7,.3,0xffd166,0,'Vibrates the vocal cords to make voice.','Brainstem'],
+SP:['Spinal cord / Body',0,-2.8,-.7,0xf4a261,0,'Carries touch and movement signals between body and brain.','Brainstem, Thalamus']};
+const N={},act={},ray=[],gl=tex(),labelSprites={};
+for(const id in D){const d=D[id],sides=d[5]==0?['']:d[5]==2?['L']:['L','R'];sides.forEach(s=>{const key=id+s,p=V3(d[1]*(s=='R'?-1:1),d[2],d[3]),col=new THREE.Color(d[4]);
+const m=new THREE.Mesh(new THREE.SphereGeometry(.035,16,12),new THREE.MeshBasicMaterial({color:col}));m.position.copy(p);m.userData.key=key;G.nod.add(m);ray.push(m);
+const h=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:col,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false}));h.position.copy(p);h.scale.setScalar(.35);G.nod.add(h);
+if(s!='R'){const c=document.createElement('canvas');c.width=256;c.height=48;const x=c.getContext('2d');x.font='600 24px Segoe UI,sans-serif';x.textAlign='center';x.fillStyle='#fff';x.shadowColor='#000';x.shadowBlur=6;x.fillText(d[0].split(' (')[0].split(':')[0],128,32);
+const l=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false}));l.position.set(p.x,p.y+.17,p.z);l.scale.set(.62,.12,1);l.renderOrder=9;l.visible=false;G.lab.add(l);labelSprites[key]=l}
+N[key]={id,d,p,m,h,col};act[key]=0})}
+// ---------- tracts
+const C=[],seen=new Set(),k=(id,s)=>N[id+s]?id+s:N[id]?id:null;
+function link(a,b){const sid=[a,b].sort().join();if(seen.has(sid))return;seen.add(sid);const A=N[a].p,B=N[b].p,mat=new THREE.LineBasicMaterial({color:N[a].d[4],transparent:true,opacity:.28}),L=A.distanceTo(B),fs=[];
+for(let i=0;i<4;i++){const m=A.clone().add(B).multiplyScalar(.5),o=m.clone().sub(CEN).normalize().multiplyScalar(L*.12);m.add(o).add(V3(rnd()-.5,rnd()-.5,rnd()-.5).multiplyScalar(.07*(i+1)));const cu=new THREE.QuadraticBezierCurve3(A,m,B);fs.push(cu);G.fib.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(cu.getPoints(18)),mat))}
+C.push({a,b,fs,mat,act:0})}
+[['F','M'],['M','S'],['S','P'],['P','O'],['A','W'],['W','B'],['B','M'],['F','B'],['F','W'],['P','F'],['F','T'],['T','S'],['T','A'],['T','O'],['H','G'],['H','T'],['G','F'],['C','ST'],['C','T'],['M','ST'],['ST','FACE'],['ST','TONG'],['ST','LAR'],['EAR','ST'],['ST','T'],['W','P'],['A','H'],['EYE','T'],['ST','SP'],['SP','T']].forEach(([a,b])=>['L','R'].forEach(s=>{const x=k(a,s),y=k(b,s);if(x&&y)link(x,y)}));
+link('FL','FR');link('PL','PR');link('OL','OR');
+// ---------- pulses
+const PL=[],MAXP=1200,pg=new THREE.BufferGeometry(),pa=new Float32Array(MAXP*3),pc=new Float32Array(MAXP*3);
+pg.setAttribute('position',new THREE.BufferAttribute(pa,3));pg.setAttribute('color',new THREE.BufferAttribute(pc,3));
+scene.add(new THREE.Points(pg,new THREE.PointsMaterial({size:.12,map:glow,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
+function fire(a,b,n=6){const c=C.find(c=>(c.a==a&&c.b==b)||(c.a==b&&c.b==a));if(!c||PL.length>MAXP-20)return;c.act=1;const rev=c.a!=a;for(let i=0;i<n;i++)PL.push({c,f:i%4,t:-i*.13,rev,col:N[a].col})}
+// ---------- scenarios (ids, caption, real latency ms)
+const SP=[['F','Prefrontal cortex forms the idea of what to say.',0],['W','Wernicke’s area picks the words and their meaning.',150],['B','Broca’s area plans the order of speech sounds.',200],['M','Motor cortex sends commands to mouth, tongue and throat.',50],['ST','Brainstem relays the commands into cranial nerves.',10],['FACE TONG LAR','Facial, hypoglossal and vagus nerves move lips, tongue and vocal cords: you speak.',30]];
+const HR=[['EAR','Sound vibrates the cochlea; hair cells fire the auditory nerve (CN VIII).',0],['ST','Brainstem nuclei relay and localise the sound.',5],['T','Thalamus relays it upward.',5],['A','Auditory cortex receives the sound.',10],['W','Wernicke’s area decodes the meaning.',100],['F','Prefrontal cortex decides on a reply.',150]];
+const S={speak:SP,hear:HR,see:[['EYE','The retina turns light into spikes in the optic nerve.',0],['T','Thalamus (LGN) relays the image.',20],['O','Visual cortex builds edges and shapes.',30],['P','Parietal lobe works out where things are.',40],['F','Prefrontal cortex interprets and decides.',100]],touch:[['SP','Skin receptors send spikes up the spinal cord.',0],['ST','Brainstem passes them upward.',10],['T','Thalamus relays the touch.',10],['S','Somatosensory cortex maps where you were touched.',20],['M','Motor cortex can now plan a response.',50]],talk:HR.concat(SP.slice(1))};
+const keysOf=s=>s.split(' ').flatMap(id=>Object.keys(N).filter(x=>N[x].id==id));
+let run=null,scenario=null,scenarioName='',play=true,speed=1,jawT=0,gT=null,gC=null,sel='FL',micA=null,micStream=null,micCtx=null,buf,cool=0,mic=0;
+function dots(){$('dots').innerHTML=scenario?scenario.map((_,i)=>`<i class="${run?(i==run.i?'on':i<run.i?'done':''):'done'}"></i>`).join(''):''}
+function syncTimeline(){const input=$('timeline');input.disabled=!scenario;input.max=Math.max(0,(scenario?.length||1)-1);input.value=run?Math.max(0,run.i):scenario?scenario.length-1:0;$('stepLabel').textContent=run?`${Math.max(1,run.i+1)} / ${run.s.length}`:scenario?'Complete':'Ready'}
+function start(n){scenarioName=n;scenario=S[n];run={s:scenario,i:-1,t:0,ms:0};if(n==='see')eegEvent('visual',1.2);else if(n==='touch')eegEvent('sensory',1.2);else eegEvent('motor',.8);$('timeline').disabled=false;next()}
+function next(){if(!run)return;run.i++;if(run.i>=run.s.length){run=null;$('clk').textContent='Signal complete.';dots();syncTimeline();return}
+const s=run.s[run.i],cur=keysOf(s[0]),prev=run.i?keysOf(run.s[run.i-1][0]):[];run.ms+=s[2];if(s[0].includes('O'))eegEvent('visual',1);if(s[0].includes('S')||s[0].includes('ST'))eegEvent('sensory',.8);if(s[0].includes('M'))eegEvent('motor',1);$('activePath').textContent=`Pathway: ${s[0].split(' ').join(' → ')} · event ${run.i+1}/${run.s.length}`;cur.forEach(c=>{act[c]=1;prev.forEach(p=>fire(p,c,9))});
+$('cap').textContent=s[1];$('clk').textContent=`Step ${run.i+1}/${run.s.length}  |  approximate biological latency: ${run.ms} ms`;sel=cur[0];info(cur[0]);dots();syncTimeline()}
+function seekStep(i){if(!scenario)return;const target=Math.max(0,Math.min(scenario.length-1,+i));run={s:scenario,i:target-1,t:0,ms:0};for(let j=0;j<target;j++)run.ms+=scenario[j][2];next()}
+function info(key){const node=N[key];if(!node)return;const d=node.d;$('info').innerHTML=`<h3 style="color:#${d[4].toString(16).padStart(6,'0')}">${d[0]}${key.endsWith('L')?' · left':key.endsWith('R')?' · right':''}</h3><p>${d[6]}</p><p>Connected to:</p>${d[7].split(', ').map(x=>`<span class="chip">${x}</span>`).join('')}<p class="eegnote">Region node and pathways are illustrative guides.</p>`;if(key.startsWith('O')){eegEvent('visual',1.5);EEG.selected='9';$('eegSelect').value='9';if(!scenarioName)start('see')}else if(key.startsWith('S')&&key!=='SP'){eegEvent('sensory',1.5);EEG.selected='6';$('eegSelect').value='6';if(!scenarioName)start('touch')}else if(key.startsWith('M')){eegEvent('motor',1.5);EEG.selected=key.endsWith('R')?'4':'5';$('eegSelect').value=EEG.selected;if(!scenarioName)start('speak')}}
+// ---------- UI
+document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>start(b.dataset.s));
+$('bPlay').onclick=()=>{play=!play;$('bPlay').textContent=play?'Pause':'Play';$('bPlay').setAttribute('aria-pressed',String(!play))};
+$('bNext').onclick=()=>{if(run)next();else if(scenario)seekStep(0)};
+$('bPrev').onclick=()=>{if(run)seekStep(run.i-1);else if(scenario)seekStep(scenario.length-1)};
+$('bRestart').onclick=()=>{if(scenarioName)start(scenarioName)};
+$('timeline').oninput=e=>seekStep(e.target.value);
+$('spd').oninput=e=>{speed=+e.target.value;$('sv').textContent=speed.toFixed(1)+'x'};
+$('bRot').onclick=()=>{ctl.autoRotate=!ctl.autoRotate;$('bRot').textContent=ctl.autoRotate?'Auto-rotate: on':'Auto-rotate';$('bRot').setAttribute('aria-pressed',String(ctl.autoRotate))};
+const VW={home:[.7,.3,5.8],side:[5.8,.2,0],front:[.7,.3,5.8],top:[0,5.9,.2],back:[0,.2,-5.8]};
+document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{gC=V3(...VW[b.dataset.v]);gT=V3(0,.15,0)});
+document.querySelectorAll('[data-l]').forEach(b=>b.onchange=()=>{if(b.dataset.l==='wire')faceWires.forEach(w=>w.visible=b.checked);else if(b.dataset.l!=='portrait')G[b.dataset.l].visible=b.checked});
+ren.domElement.addEventListener('pointerdown',e=>{gC=null;ren.domElement._d=[e.clientX,e.clientY]});
+ren.domElement.addEventListener('pointerup',e=>{const d=ren.domElement._d;if(!d||Math.hypot(e.clientX-d[0],e.clientY-d[1])>5)return;const r=ren.domElement.getBoundingClientRect(),rc=new THREE.Raycaster();rc.setFromCamera({x:(e.clientX-r.left)/r.width*2-1,y:-((e.clientY-r.top)/r.height)*2+1},cam);rc.params.Points={threshold:.1};
+const h=rc.intersectObjects(ray)[0];if(h){const key=h.object.userData.key;sel=key;info(key);act[key]=1;gT=N[key].p.clone();C.forEach(c=>{if(c.a==key)fire(key,c.b,4);if(c.b==key)fire(key,c.a,4)})}});
+$('bMic').onclick=async()=>{if(micA){micA=null;micStream?.getTracks().forEach(t=>t.stop());micStream=null;micCtx?.close();micCtx=null;$('bMic').textContent='Mic live';$('cap').textContent='Microphone stopped.';return}
+try{if(!navigator.mediaDevices?.getUserMedia)throw new Error('Microphone access requires HTTPS or localhost.');micStream=await navigator.mediaDevices.getUserMedia({audio:true});micCtx=new AudioContext();micA=micCtx.createAnalyser();micA.fftSize=512;micCtx.createMediaStreamSource(micStream).connect(micA);buf=new Uint8Array(512);$('bMic').textContent='Mic off';$('cap').textContent='Speak: your voice drives the signals and the jaw.'}catch(e){micStream?.getTracks().forEach(t=>t.stop());micStream=null;micA=null;$('cap').textContent=`Microphone unavailable: ${e.message||'check browser permission or use HTTPS/localhost.'}`}};
+addEventListener('keydown',e=>{if(e.target.matches('input,button,select'))return;if(e.code==='Space'){e.preventDefault();$('bPlay').click()}if(e.key==='ArrowRight')$('bNext').click();if(e.key==='ArrowLeft')$('bPrev').click();if(e.key==='Home'){setDepth(1);gT=V3(0,.15,0)}if(e.key==='[')setDepth(anatomyLevel-1);if(e.key===']')setDepth(anatomyLevel+1)});
+// Streaming provider boundary: replace provider.sample() with a real EEG adapter when available.
+const EEG={channels:['Fp1','Fp2','F3','F4','C3','C4','Cz','P3','P4','O1','O2','Fz'],colors:['#66d9ff','#6ee7b7','#77aaff','#f0a5ff','#ffca75','#ff8f78','#e9ed77','#81d4fa','#b39dfa','#76e4c7','#f49ac2','#c5d2ff'],bands:[['Delta',.5,4],['Theta',4,8],['Alpha',8,13],['Beta',13,30],['Gamma',30,45]],time:0,base:0,paused:false,speed:1,sensitivity:1,window:10,selected:'all',enabled:[true,true,true,true,true],event:{motor:0,visual:0,sensory:0},samples:[],provider:{type:'synthetic',sample(t,ch){return EEG.synthetic(t,ch)}}};
+EEG.synthetic=function(t,ch){const phase=ch*.71,ev=this.event,central=ch===4||ch===5||ch===6,occip=ch===9||ch===10,motor=ch===4||ch===5;let v=.18*Math.sin(2*Math.PI*2.1*t+phase)+.12*Math.sin(2*Math.PI*6.2*t+phase*.7)+.10*Math.sin(2*Math.PI*(occip?10:central?19:11)*t+phase)+.055*Math.sin(2*Math.PI*24*t+phase*1.3)+.028*Math.sin(2*Math.PI*38*t+phase*.3)+.035*Math.sin(t*17.3+phase)*Math.sin(t*31.7+phase*2);if(motor)v+=ev.motor*.35*Math.sin(2*Math.PI*18*t);if(occip)v+=ev.visual*.42*Math.sin(2*Math.PI*10*t);if(central)v+=ev.sensory*.32*Math.sin(2*Math.PI*7*t);return v*this.sensitivity};
+const ec=$('eegCanvas'),fc=$('fftCanvas'),ex=ec.getContext('2d'),fx=fc.getContext('2d');EEG.channels.forEach((n,i)=>{const o=document.createElement('option');o.value=i;o.textContent=n;$('eegSelect').append(o)});EEG.bands.forEach((b,i)=>{const l=document.createElement('label');l.className='band';l.innerHTML=`<input type="checkbox" checked data-band="${i}">${b[0]} <em id="bp${i}">0%</em>`;$('bands').append(l)});
+function eegEvent(type,level=1){EEG.event[type]=Math.min(1.8,Math.max(EEG.event[type]||0,level))}
+function eegResize(){for(const [c,x] of [[ec,ex],[fc,fx]]){const r=c.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);if(r.width&&r.height&&(c.width!==Math.round(r.width*d)||c.height!==Math.round(r.height*d))){c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);x.setTransform(d,0,0,d,0,0)}}}
+function eegFFT(samples,ch){const n=256,re=new Float64Array(n),im=new Float64Array(n);for(let i=0;i<n;i++){const v=samples[i]?.[ch]||0,w=.5-.5*Math.cos(2*Math.PI*i/(n-1));re[i]=v*w}for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]]}}for(let len=2;len<=n;len<<=1){const ang=-2*Math.PI/len,wr0=Math.cos(ang),wi0=Math.sin(ang);for(let i=0;i<n;i+=len){let wr=1,wi=0;for(let j=0;j<len/2;j++){const u=i+j,v=i+j+len/2,tr=wr*re[v]-wi*im[v],ti=wr*im[v]+wi*re[v];re[v]=re[u]-tr;im[v]=im[u]-ti;re[u]+=tr;im[u]+=ti;const next=wr*wr0-wi*wi0;wi=wr*wi0+wi*wr0;wr=next}}}return Array.from({length:n/2},(_,k)=>Math.hypot(re[k],im[k])/(n*.5))}
+function eegDraw(){eegResize();const w=ec.clientWidth,h=ec.clientHeight;if(!w||!h)return;ex.fillStyle='#070d16';ex.fillRect(0,0,w,h);ex.lineCap='round';ex.lineJoin='round';const channels=EEG.selected==='all'?EEG.channels.map((_,i)=>i):[+EEG.selected],rh=h/channels.length;for(let i=0;i<=10;i++){ex.strokeStyle=i%5?'#142235':'#23354a';ex.beginPath();ex.moveTo(i*w/10,0);ex.lineTo(i*w/10,h);ex.stroke()}channels.forEach((ch,row)=>{const y=row*rh;for(let j=0;j<=4;j++){ex.strokeStyle=j===2?'#263a50':'#17283b';ex.beginPath();ex.moveTo(0,y+j*rh/4);ex.lineTo(w,y+j*rh/4);ex.stroke()}ex.fillStyle=EEG.colors[ch];ex.font='10px ui-monospace,monospace';ex.fillText(EEG.channels[ch],5,y+12);ex.beginPath();ex.strokeStyle=EEG.colors[ch];ex.lineWidth=1.35;let started=false;for(let x=0;x<w;x++){const t=EEG.time-EEG.window+x/w*EEG.window,idx=Math.floor(t*128)-EEG.base,v=EEG.samples[idx]?.[ch];if(v===undefined)continue;const yy=y+rh*.56-v*rh*.75;if(!started){ex.moveTo(x,yy);started=true}else ex.lineTo(x,yy)}ex.stroke()});
+const sig=EEG.samples.slice(-256),ch=channels[0],sp=eegFFT(sig,ch);for(let k=1;k<128;k++){const hz=k*.5,b=EEG.bands.findIndex(x=>hz>=x[1]&&hz<x[2]);if(b>=0&&!EEG.enabled[b])sp[k]=0}const fw=fc.clientWidth,fh=fc.clientHeight;fx.fillStyle='#070d16';fx.fillRect(0,0,fw,fh);for(let i=0;i<=5;i++){fx.strokeStyle='#18283b';fx.beginPath();fx.moveTo(i*fw/5,0);fx.lineTo(i*fw/5,fh);fx.stroke()}fx.beginPath();sp.forEach((v,k)=>{const x=k/127*fw,y=fh-5-Math.min(fh-14,v*fh*5);if(k)fx.lineTo(x,y);else fx.moveTo(x,y)});fx.strokeStyle='#64e2c1';fx.lineWidth=1.4;fx.stroke();fx.fillStyle='#8ea5bf';fx.font='9px ui-monospace,monospace';fx.fillText('FFT · 0–64 Hz',5,11);let sum=0;const recent=EEG.samples.slice(-128);recent.forEach(s=>sum+=s[ch]**2);$('eegAmp').textContent=recent.length?(Math.sqrt(sum/recent.length)*100).toFixed(1):'—';let peak=1,max=0;sp.forEach((v,k)=>{if(v>max){max=v;peak=k*.5}});$('eegHz').textContent=sig.length?peak.toFixed(1):'—';$('eegCh').textContent=EEG.selected==='all'?'ALL':EEG.channels[ch];$('eegWindow').textContent=EEG.window.toFixed(1);EEG.bands.forEach((b,i)=>{let p=0;sp.forEach((v,k)=>{const hz=k*.5;if(hz>=b[1]&&hz<b[2])p+=v*v});$('bp'+i).textContent=EEG.enabled[i]?(100*p/(sp.reduce((a,v)=>a+v*v,0)||1)).toFixed(0)+'%':'OFF'})}
+function eegTick(dt){if(!EEG.paused){EEG.time+=dt*EEG.speed;const target=Math.floor(EEG.time*128);while(EEG.base+EEG.samples.length<=target){const t=(EEG.base+EEG.samples.length)/128;EEG.samples.push(EEG.channels.map((_,i)=>EEG.provider.sample(t,i)))}if(EEG.samples.length>3072){const d=EEG.samples.length-3072;EEG.samples.splice(0,d);EEG.base+=d}}Object.keys(EEG.event).forEach(k=>EEG.event[k]=Math.max(0,EEG.event[k]-dt*.18));eegDraw()}
+$('eegRun').onclick=()=>{EEG.paused=!EEG.paused;$('eegRun').textContent=EEG.paused?'Start':'Pause'};$('eegReset').onclick=()=>{EEG.time=0;EEG.base=0;EEG.samples=[];Object.keys(EEG.event).forEach(k=>EEG.event[k]=0)};$('eegSpeed').onchange=e=>EEG.speed=+e.target.value;$('eegSelect').onchange=e=>EEG.selected=e.target.value;$('sens').oninput=e=>{EEG.sensitivity=+e.target.value;$('sensVal').textContent=EEG.sensitivity.toFixed(1)};$('timeScale').oninput=e=>{EEG.window=+e.target.value;$('timeVal').textContent=e.target.value};document.querySelectorAll('[data-band]').forEach(x=>x.onchange=()=>EEG.enabled[+x.dataset.band]=x.checked);$('eegCollapse').onclick=()=>{$('eeg').classList.toggle('collapsed');$('eegCollapse').textContent=$('eeg').classList.contains('collapsed')?'+':'−'};$('eegFull').onclick=()=>{$('eeg').classList.toggle('full');eegResize()};
+const depthNames=['External head','Skin transition','Skull guide','Internal anatomy','Brain regions','Neural pathways','Microscopic signal'],depthDistances=[5.8,5.15,4.65,4.2,3.9,3.6,3.4];let anatomyLevel=1;
+function setDepth(level,move=true){anatomyLevel=Math.max(1,Math.min(7,+level));$('depth').value=anatomyLevel;$('depthLabel').textContent=`${anatomyLevel} · ${depthNames[anatomyLevel-1]}`;if(move){const dir=cam.position.clone().sub(ctl.target).normalize();gC=ctl.target.clone().addScaledVector(dir,depthDistances[anatomyLevel-1])}}
+$('depth').oninput=e=>setDepth(e.target.value);$('depthPrev').onclick=()=>setDepth(anatomyLevel-1);$('depthNext').onclick=()=>setDepth(anatomyLevel+1);let lastWheel=0;ren.domElement.addEventListener('wheel',e=>{const now=performance.now();if(now-lastWheel<170)return;lastWheel=now;const n=Math.max(1,Math.min(7,anatomyLevel+(e.deltaY>0?1:-1)));if(n!==anatomyLevel){e.preventDefault();setDepth(n)}},{passive:false});
+function size(){const stage=$('stage'),w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;ren.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix()}addEventListener('resize',size);new ResizeObserver(size).observe($('stage'));size();
+// ---------- loop
+const clk=new THREE.Clock();let tm=0,lastView=-1;
+function loop(){requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.05),sd=play?dt*speed:0;tm+=sd;eegTick(dt);
+if(run&&play){run.t+=sd;if(run.t>1.9){run.t=0;next()}}
+mic=0;if(micA){micA.getByteTimeDomainData(buf);let m=0;for(const x of buf)m=Math.max(m,Math.abs(x-128));mic=Math.min(1,m/70);if(m>24&&!run&&Date.now()>cool){cool=Date.now()+8000;start('speak')}if(mic>.2){['MR','ML','BL','LAR'].forEach(x=>act[x]=Math.max(act[x],mic));if(rnd()<.2)fire('ML','ST',2)}}
+const speaking=run&&run.s[run.i]&&run.s[run.i][0].includes('LAR');jawT=mic>.15?mic:speaking?.5+.5*Math.sin(tm*16):0;jaw.rotation.x+=(jawT*.28-jaw.rotation.x)*.35;
+if(play&&rnd()<.04*speed){const c=C[(rnd()*C.length)|0];fire(c.a,c.b,2)}
+let n=0;for(let i=PL.length-1;i>=0;i--){const p=PL[i];p.t+=sd*.55;if(p.t>1){PL.splice(i,1);continue}}
+PL.forEach(p=>{if(p.t<0||n>=MAXP)return;const q=p.c.fs[p.f].getPoint(p.rev?1-p.t:p.t);pa[n*3]=q.x;pa[n*3+1]=q.y;pa[n*3+2]=q.z;pc[n*3]=p.col.r;pc[n*3+1]=p.col.g;pc[n*3+2]=p.col.b;n++});
+pg.attributes.position.needsUpdate=pg.attributes.color.needsUpdate=true;pg.setDrawRange(0,n);
+C.forEach(c=>{c.act=Math.max(0,c.act-dt*.4);c.mat.opacity=.2+c.act*.6});
+for(const key in N){act[key]=Math.max(0,act[key]-dt*.35);const a=act[key],o=N[key];o.m.scale.setScalar(1+a*.9+(key==sel?.35:0));o.h.scale.setScalar(.3+a*.7);o.h.material.opacity=.35+a*.65;if(labelSprites[key])labelSprites[key].visible=key===sel}
+if(gC){cam.position.lerp(gC,.06);if(cam.position.distanceTo(gC)<.05)gC=null}if(gT){ctl.target.lerp(gT,.06);if(ctl.target.distanceTo(gT)<.02)gT=null}
+const dist=cam.position.distanceTo(ctl.target),depth=dist>=5.5?1:dist>=4.9?2:dist>=4.4?3:dist>=4.05?4:dist>=3.75?5:dist>=3.5?6:7;setDepth(depth,false);const layerOn=name=>document.querySelector(`[data-l="${name}"]`).checked,faceAlpha=Math.max(0,Math.min(1,(dist-3.85)/1.55)),humanEnabled=humanReady&&layerOn('portrait')&&faceAlpha>.015;humanModel.visible=humanEnabled;humanMaterials.forEach(m=>{m.opacity=m.userData.baseOpacity*faceAlpha;m.transparent=m.userData.baseTransparent||faceAlpha<.999;m.depthWrite=faceAlpha>.999?m.userData.baseDepthWrite:false});const fallbackHead=!humanEnabled&&layerOn('portrait')&&depth<=2;G.face.visible=fallbackHead;skin.opacity=fallbackHead?faceAlpha:0;skin.depthWrite=fallbackHead&&depth===1;G.face.traverse(o=>{if(o.isMesh&&o!==head)o.visible=fallbackHead});portraitShell.visible=false;portraitPhoto.visible=false;wireMat.opacity=0;earWireMat.opacity=0;faceWires.forEach(w=>w.visible=layerOn('wire')&&fallbackHead);G.skull.visible=depth===3&&layerOn('skull');G.brain.visible=depth>=4&&depth<=5&&layerOn('brain');G.fib.visible=depth===6&&layerOn('fib');G.neu.visible=depth===7&&layerOn('neu');G.lab.visible=depth===5&&layerOn('lab');G.nod.visible=depth===5&&layerOn('nod');const mode=`${depth}:${humanEnabled}:${humanFailed}`;if(mode!==lastView){$('viewMode').textContent=`Level ${depth} · ${depthNames[depth-1]}${humanFailed?' · model fallback':!humanReady&&depth===1?' · loading 3D head':''}`;lastView=mode}
+ctl.update();ren.render(scene,cam)}
+info('FL');loop();
+</script></body></html>
